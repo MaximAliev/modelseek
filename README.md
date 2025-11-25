@@ -1,4 +1,4 @@
-# AutoMLHub
+# MLBench
 The aim of this project is to simplify benchmarking process in the field of automated machine learning.
 
 ### Project status
@@ -10,7 +10,7 @@ The project under active development and new frameworks, tasks, metrics and repo
 - Supported metrics: f1, average precision and balanced accuracy. 
 - Supported data repositories:
     - [OpenML](https://www.openml.org/).
-    - [Zenodo](https://zenodo.org/).
+    - Local filesystem.
 
 ### Usage
 1. Clone the project.

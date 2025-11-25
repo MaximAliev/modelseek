@@ -1,8 +1,8 @@
-from core.runner import AutoMLHub
+from core.runner import MLBench
 
 
 def main():
-    automl_hub = AutoMLHub(repository='zenodo')
+    automl_hub = MLBench(repository='zenodo')
     dataset_repo = automl_hub.repository
     dataset_repo.load_datasets()
 

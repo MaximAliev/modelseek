@@ -69,7 +69,7 @@ class OpenMLRepository(TabularDatasetRepository):
     def __init__(self, suite_id=271):
         super().__init__()
         self._suite_id = suite_id
-        openml.config.set_root_cache_directory("openml_cache")
+        openml.config.set_root_cache_directory("datasets/openml")
 
     # TODO: parallelize.
     def load_dataset(self, id: Optional[int] = None) -> TabularDataset:

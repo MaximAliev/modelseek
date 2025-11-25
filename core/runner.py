@@ -22,7 +22,7 @@ from loguru import logger
 
 
 # TODO: support presets and leaderboard.
-class AutoMLHub:
+class MLBench:
     def __init__(
         self,
         automl = 'ag',
