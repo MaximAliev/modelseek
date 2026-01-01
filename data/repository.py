@@ -20,11 +20,11 @@ class DatasetRepository(ABC):
         self._datasets: List[Dataset] = []
 
     @abstractmethod
-    def load_datasets(self, ids: Optional[List[int]] = None, X_and_y = True) -> List[Dataset]:
+    def load_datasets(self, ids: Optional[List[int]] = None, X_and_y = False) -> List[Dataset]:
         raise NotImplementedError()
 
     @abstractmethod
-    def load_dataset(self, id: int, X_and_y = True) -> Dataset:
+    def load_dataset(self, id: int, X_and_y = False) -> Dataset:
         raise NotImplementedError()
 
     @property
@@ -39,7 +39,7 @@ class ImbalancedBinaryClassificationRepository(DatasetRepository):
         self._raw_datasets = fetch_datasets(data_home='datasets/imbalanced', verbose=True)
 
     @logger.catch
-    def load_dataset(self, id: int, X_and_y = True) -> Dataset:
+    def load_dataset(self, id: int, X_and_y = False) -> Dataset:
         for i, (dataset_name, dataset_data) in enumerate(self._raw_datasets.items(), 1):
             if i == id:
                 x = dataset_data.get("data")
@@ -49,8 +49,9 @@ class ImbalancedBinaryClassificationRepository(DatasetRepository):
                     x = pd.DataFrame(np.concatenate((x, y), axis=1))
                     y = None
                 else:
+                    # TODO: make it work.
                     x = pd.DataFrame(x)
-                    y = pd.Series(y)
+                    y = pd.Series(y.T[0], dtype=str)
                 return Dataset(
                     name=dataset_name,
                     x=x,
@@ -59,7 +60,7 @@ class ImbalancedBinaryClassificationRepository(DatasetRepository):
             elif i > id:
                 raise ValueError(f"Id {id}) is out of range.")
 
-    def load_datasets(self, ids: Optional[List[int]] = None, X_and_y = True) -> List[Dataset]:
+    def load_datasets(self, ids: Optional[List[int]] = None, X_and_y = False) -> List[Dataset]:
         if ids is None:
             range_start = 1
             range_end = len(self._raw_datasets.keys()) + 1
@@ -79,7 +80,7 @@ class OpenMLRepository(DatasetRepository):
         openml.config.set_root_cache_directory("datasets/openml")
 
     # TODO: parallelize.
-    def load_dataset(self, id: Optional[int] = None, X_and_y = True) -> Dataset:
+    def load_dataset(self, id: Optional[int] = None, X_and_y = False) -> Dataset:
         task = openml.tasks.get_task(id)
         dataset = task.get_dataset()
         x, y, categorical_indicator, feature_names = dataset.get_data(
@@ -99,7 +100,7 @@ class OpenMLRepository(DatasetRepository):
         )
 
     @logger.catch
-    def load_datasets(self, ids: Optional[List[int]] = None, X_and_y = True) -> List[Dataset]:
+    def load_datasets(self, ids: Optional[List[int]] = None, X_and_y = False) -> List[Dataset]:
         benchmark_suite = openml.study.get_suite(suite_id=self._suite_id)
         for i, id in enumerate(benchmark_suite.tasks):
             if ids is not None and i not in ids:

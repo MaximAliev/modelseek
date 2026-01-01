@@ -12,7 +12,7 @@ The project under active development and new frameworks, tasks, metrics and data
 1. Clone the project.
 2. Initialize project with `uv init` and create a virtual environment with `uv venv -p 3.10`.
 3. Install dependencies with `uv sync`.
-4. Use examples from **examples** folder as a starting point. For instance, `uv run -m examples.1`.
+4. Use example.py.
 
 ### Contribution
 Contribution is welcome! Feel free to open issues and submit pull requests.

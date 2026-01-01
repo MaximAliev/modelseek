@@ -47,11 +47,10 @@ class BAML:
 
     @logger.catch
     def run(self) -> None:
-        separate_on_x_and_y = False
-        self.repository.load_datasets(X_and_y=separate_on_x_and_y)
+        self.repository.load_datasets()
         
         for dataset in self.repository.datasets:
-            self._run_on_dataset(dataset, x_and_y=separate_on_x_and_y)
+            self._run_on_dataset(dataset)
 
     def _configure_environment(self) -> None:
         # if self._log_to_file:
@@ -75,7 +74,8 @@ class BAML:
             y = dataset.y
             y_label = y.name
         x_train, x_test, y_train, y_test = split_data_on_train_and_test(x, y)
-
+        y_train = y_train.astype(object)
+        
         logger.info(f"Running a benchmark for the Dataset(name={dataset.name}).")
 
         class_belongings = Counter(y_train)

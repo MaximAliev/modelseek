@@ -4,6 +4,7 @@ import pprint
 import re
 from abc import ABC, abstractmethod
 from io import StringIO
+import sys
 from typing import Optional, Set, Union, final, List, Dict
 import h2o
 from h2o.automl import H2OAutoML
@@ -46,7 +47,6 @@ class AutoML(ABC):
         y_pred: pd.Series,
         pos_label: Optional[int] = None,
     ) -> None:
-
         calculate_metric_score_kwargs = {
             'y_test': y_test,
             'y_pred': y_pred,
@@ -235,9 +235,14 @@ class H2O(AutoML):
         ]:
             raise ValueError(f"Metric {metric} is not supported by H2O.")
         
-        h2o_dataset = h2o.H2OFrame(dataset.x)
+        x_dtypes = dataset.x.dtypes
+        h2o_x_dtypes = x_dtypes\
+            .mask(x_dtypes == object, 'categorical')\
+            .mask(x_dtypes == np.float64, 'double')\
+            .to_list()
+        h2o_dataset = h2o.H2OFrame(dataset.x, column_types=h2o_x_dtypes)
 
-        predictor = H2OAutoML(max_runtime_secs=20)
+        predictor = H2OAutoML()
         predictor.train(x=list(dataset.x.columns[:-1]), y=str(dataset.x.columns[-1]), training_frame=h2o_dataset)
 
         self._fitted_model = predictor.leader
@@ -248,7 +253,7 @@ class H2O(AutoML):
         if self._fitted_model is None:
             raise NotFittedError()
         dataset_test = h2o.H2OFrame(x_test)
-        predictions = self._fitted_model.predict(dataset_test).as_data_frame().iloc[:, 0].astype(int)
-        mapped_predictions = np.where(predictions == 0, -1, 1)
+        
+        predictions = self._fitted_model.predict(dataset_test).as_data_frame().iloc[:, 0]
 
-        return mapped_predictions
+        return predictions
