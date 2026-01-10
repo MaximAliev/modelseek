@@ -10,38 +10,37 @@ from typing import cast
 
 
 
-def split_data_on_train_and_test(
+def train_test_split(
     X: pd.DataFrame,
     y: Optional[pd.Series] = None
-) -> List[Union[pd.DataFrame, pd.Series]]:
+) -> Tuple[pd.DataFrame, pd.DataFrame, pd.Series, pd.Series]:
     if y is not None:
-        return tts(
-            X,
-            y,
-            random_state=42,
-            test_size=0.2,
-            stratify=y)
+        try:
+            return tuple(
+                tts(X,
+                    y,
+                    random_state=42,
+                    test_size=0.2,
+                    stratify=y))
+        except ValueError as exc:
+            return tuple(
+                tts(X,
+                    y,
+                    random_state=42,
+                    test_size=0.2))   
     else:
-        return tts(
-        X,
-        y,
-        random_state=42,
-        test_size=0.2)
+        return tuple(
+            tts(X,
+                y,
+                random_state=42,
+                test_size=0.2))
 
-def infer_positive_class_label(y_train: Union[pd.Series, pd.DataFrame]) -> str:
-    class_belongings = Counter(y_train)
+def infer_positive_class_of_target(class_belongings: Counter) -> str:
     if len(class_belongings) > 2:
         raise ValueError("Multiclass problems currently not supported =(.")
 
-    class_belongings_formatted = '; '.join(f"{k}: {v}" for k, v in class_belongings.items())
-    logger.debug(f"Class belongings: {{{class_belongings_formatted}}}")
-
     class_belongings_iterator = iter(sorted(cast(Iterable, class_belongings)))
     *_, pos_label = class_belongings_iterator
-    logger.debug(f"Inferred positive class label: {pos_label}.")
-
-    number_of_positives = class_belongings.get(pos_label)
-    if number_of_positives is None:
-        raise ValueError("Unknown positive class label.")
+    logger.debug(f"Inferred positive class label: {pos_label}.")        
     
     return pos_label

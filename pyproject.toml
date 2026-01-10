@@ -22,7 +22,8 @@ dependencies = [
     "loguru>=0.7.3",
     "polars==1.36.1",
     "pyarrow==22.0.0",
-    "install-jdk"
+    "install-jdk==1.1.0",
+    "ray>=2.10.0,<2.45.0"
 ]
 
 [global]

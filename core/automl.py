@@ -80,36 +80,47 @@ class AutoML(ABC):
         y_pred = kwargs.get("y_pred")
         pos_label = kwargs.get("pos_label")
 
-        if metric == 'f1':
-            score = fbeta_score(y_test, y_pred, beta=1, pos_label=pos_label)
-            logger.info(f"F1 score: {score:.3f}.")
+        if metric.startswith('f1'):
+            if metric == 'f1':
+                average = 'binary'
+            elif metric == 'f1_weighted':
+                average = 'weighted'
+            elif metric == 'f1_macro':
+                average = 'macro'
+            else:
+                raise ValueError("Invalid average for f1-measure.")
+            score = fbeta_score(y_test, y_pred, beta=1, pos_label=pos_label, average=average)
+            
+            logger.info(f"F1{'_' + average} score: {score:.3f}")
         elif metric == 'precision':
             score = precision_score(y_test, y_pred, pos_label=pos_label)
-            logger.info(f"Precision score: {score:.3f}.")
+            logger.info(f"Precision score: {score:.3f}")
         elif metric == 'recall':
             score = recall_score(y_test, y_pred, pos_label=pos_label)
-            logger.info(f"Recall score: {score:.3f}.")
+            logger.info(f"Recall score: {score:.3f}")
         elif metric == 'roc_auc':
             score = roc_auc_score(y_test, y_pred)
-            logger.info(f"ROC AUC score: {score:.3f}.")
+            logger.info(f"ROC AUC score: {score:.3f}")
         elif metric == 'balanced_accuracy':
-            score = balanced_accuracy_score(y_test, y_pred)
-            logger.info(f"Balanced accuracy score: {score:.3f}.")
+            score = balanced_accuracy_score(y_test, y_pred, adjusted=True)
+            logger.info(f"Balanced accuracy score: {score:.3f}")
         elif metric == 'average_precision':
             score = average_precision_score(y_test, y_pred, pos_label=pos_label)
-            logger.info(f"Average precision score: {score:.3f}.")
+            logger.info(f"Average precision score: {score:.3f}")
         elif metric == 'mcc':
             score = matthews_corrcoef(y_test, y_pred)
-            logger.info(f"MCC score: {score:.3f}.")
+            logger.info(f"MCC score: {score:.3f}")
         elif metric == 'accuracy':
             score = accuracy_score(y_test, y_pred)
-            logger.info(f"Balanced accuracy score: {score:.3f}.")
+            logger.info(f"Balanced accuracy score: {score:.3f}")
         else:
             raise ValueError(
                 f"""
                 Invalid value encountered among values of test_metrics parameter:{metric}.
                 Metrics available: [
                 'f1',
+                'f1_macro',
+                'f1_weighted',
                 'precision',
                 'recall',
                 'roc_auc',
@@ -159,7 +170,7 @@ class AutoGluon(AutoML):
         if self._fitted_model is None:
             raise NotFittedError()
         dataset_test = AutoGluonTabularDataset(x_test)
-        predictions = self._fitted_model.predict(dataset_test)
+        predictions = self._fitted_model.predict(dataset_test).astype(int)
 
         return predictions
 
@@ -174,6 +185,8 @@ class AutoGluon(AutoML):
         
         if metric not in [
             'f1',
+            'f1_macro',
+            'f1_weighted',
             'precision',
             'recall',
             'roc_auc',
@@ -187,7 +200,6 @@ class AutoGluon(AutoML):
         ag_dataset = AutoGluonTabularDataset(dataset.x)
 
         predictor = AutoGluonTabularPredictor(
-            problem_type='binary',
             label=dataset.x.columns[-1],
             eval_metric=metric,
         )
@@ -247,11 +259,14 @@ class H2O(AutoML):
         x_dtypes = dataset.x.dtypes
         logger.debug(x_dtypes)
 
-        h2o_x_dtypes = x_dtypes\
+        self._df_dtypes = x_dtypes\
             .mask(x_dtypes == object, 'categorical')\
+            .mask(x_dtypes == 'category', 'categorical')\
+            .mask(x_dtypes == np.uint8, 'int')\
             .mask(x_dtypes == np.float64, 'double')\
+            .mask(x_dtypes == bool, 'int')\
             .to_list()
-        h2o_dataset = h2o.H2OFrame(dataset.x, column_types=h2o_x_dtypes)
+        h2o_dataset = h2o.H2OFrame(dataset.x, column_types=self._df_dtypes)
 
         predictor = H2OAutoML(max_runtime_secs=timeout)
         predictor.train(x=list(dataset.x.columns[:-1]), y=str(dataset.x.columns[-1]), training_frame=h2o_dataset)
@@ -263,8 +278,8 @@ class H2O(AutoML):
     def predict(self, x_test: pd.DataFrame) -> Union[pd.Series, np.ndarray]:
         if self._fitted_model is None:
             raise NotFittedError()
-        dataset_test = h2o.H2OFrame(x_test)
+        dataset_test = h2o.H2OFrame(x_test, column_types=self._df_dtypes[:-1])
         
-        predictions = self._fitted_model.predict(dataset_test).as_data_frame().iloc[:, 0]
+        predictions = self._fitted_model.predict(dataset_test).as_data_frame(use_multi_thread=True).iloc[:, 0].cat.codes
 
         return predictions

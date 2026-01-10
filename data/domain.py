@@ -8,6 +8,7 @@ import pandas as pd
 
 @dataclass
 class Dataset:
+    id: int
     name: str
     x: pd.DataFrame
     y: Optional[pd.Series] = None

@@ -1,13 +1,13 @@
 # BAML
-The project goal is to improve reproducibility of benchmarking of automated machine learning (AutoML) tools by introducing unified API.
+The project goal is to improve reproducibility of benchmarking of automated machine learning (AutoML) tools by introducing a unified API.
 
 ### Project status
 The project under active development and new frameworks, tasks, metrics and data repositories to be added soon.
 - Supported frameworks: 
-    - [AutoGluon.Tabular](https://github.com/autogluon/autogluon).
+    - [AutoGluon](https://github.com/autogluon/autogluon).
     - [H2O-AutoML](https://github.com/h2oai/h2o-3).
 - Supported tasks: 
-    - Tabular binary classification.
+    - Tabular classification.
 
 ### Installation and usage
 
@@ -23,10 +23,11 @@ from core.runner import BAML
 
 def main():
     baml = BAML(
-        repository = 'binary-imbalanced',
         automl='ag',
-        preset='good',
-        validation_metric='f1',
+        preset='best',
+        metric='f1',
+        timeout=1800,
+        extra_metrics=['average_precision']
     )
     baml.run()
 
