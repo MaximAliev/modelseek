@@ -22,7 +22,7 @@ from data.repository import DatasetRepository, BinaryImbalancedDatasetRepository
 from core._helpers import infer_positive_target_class, train_test_split
 
 
-class BAML:
+class Benchme:
     """
     User interface for performing AutoML benchmarks.
 
@@ -161,7 +161,7 @@ class BAML:
 
         if str(self.automl) == 'H2O':
             validation_metric += '_weighted'
-        logger.info(f"Test metrics are {self.test_metrics}")
+        logger.debug(f"Test metrics are {self.test_metrics}")
         
         self.automl.score(self.test_metrics, y_test, y_predicted, pos_class_label)
 

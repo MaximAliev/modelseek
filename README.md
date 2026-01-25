@@ -1,4 +1,4 @@
-# BAML
+# Benchme
 The project goal is to improve reproducibility of benchmarking of automated machine learning (AutoML) tools by introducing a unified API.
 
 ### Project status
@@ -18,18 +18,18 @@ The project under active development and new frameworks, tasks, metrics and data
 
 #### Usage
 ```python
-from core.api import BAML
+from core.api import Benchme
 
 
 def main():
-    baml = BAML(
+    benchme = Benchme(
         automl='ag',
         preset='best',
         metric='f1',
         timeout=1800,
         extra_metrics=['average_precision']
     )
-    baml.run()
+    benchme.run()
 
 
 if __name__ == '__main__':
@@ -38,5 +38,3 @@ if __name__ == '__main__':
 
 ### Contribution
 Contribution is welcome! Feel free to open issues and submit pull requests.
-
-This project is a part of my PhD study and it has no funding at all.
