@@ -1,9 +1,13 @@
+[build-system]
+requires = ["hatchling >= 1.26"]
+build-backend = "hatchling.build"
+
 [project]
-name = "benchme"
+name = "mlbenchmark"
 version = "0.1.0"
 requires-python = ">=3.10"
 dependencies = [
-    "autogluon-tabular[catboost,lightgbm,xgboost,fastai,ray,skex,realmlp,tabicl,tabpfn]==1.5.0",
+    "autogluon-tabular[catboost,lightgbm,xgboost,skex,fastai,ray,realmlp,tabicl,tabpfn,tabdpt]==1.5.0",
     "datasphere>=0.10.0",
     "docutils==0.21.2",
     "imbalanced-learn==0.14.1",
@@ -13,7 +17,6 @@ dependencies = [
     "pandas==2.2.3",
     "pytest==8.3.5",
     "seaborn==0.13.2",
-    "setuptools>=80.9.0",
     "torch>=2.2,<2.7",
     "tqdm==4.66.5",
     "h2o>=3.46.0.9",
@@ -22,6 +25,23 @@ dependencies = [
     "install-jdk==1.1.0",
 ]
 
-[global]
-extra_index_url = "https://download.pytorch.org/whl/cpu"
+readme = "README.md"
+license= "GPL-3.0-or-later"
+license-files = ["LICENSE"]
 
+[project.optional-dependencies]
+cpu = []
+
+
+[tool.hatch.build.targets.wheel]
+packages = ["core", "data"]
+
+[tool.uv.sources]
+torch = [
+    { index = "torch-cpu", marker = "extra == 'cpu'" }
+]
+
+[[tool.uv.index]]
+name = "torch-cpu"
+url = "https://download.pytorch.org/whl/cpu"
+explicit = true

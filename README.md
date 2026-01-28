@@ -14,7 +14,7 @@ The project under active development and new frameworks, tasks, metrics and data
 #### Installation
 1. Clone the project.
 2. Initialize project with `uv init` and create a virtual environment with `uv venv -p 3.10`.
-3. Install dependencies with `uv sync`.
+3. Install dependencies with `uv sync`. For CPU-only installation type `uv sync --extra cpu`. 
 
 #### Usage
 ```python
