@@ -263,4 +263,8 @@ class H2O(AutoML):
         
         predictions = self._fitted_model.predict(dataset_test).as_data_frame(use_multi_thread=True).iloc[:, 0]
 
+        cluster = h2o.cluster()
+        if cluster is not None:
+            cluster.shutdown()
+
         return predictions
