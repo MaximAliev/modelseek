@@ -18,7 +18,7 @@ from sklearn.base import BaseEstimator
 
 from core._automl import H2O, AutoML, AutoGluon
 from data._domain import Dataset, Task
-from data.repository import DatasetRepository, BinaryImbalancedDatasetRepository, OpenMLDatasetRepository
+from data.repository import DatasetRepository, ImbalancedDatasetRepository, OpenMLDatasetRepository
 from core._helpers import infer_positive_target_class, train_test_split
 
 
@@ -28,7 +28,7 @@ class MLBenchmark:
 
     This class presents an unified API to run different ML methods on various settings.
 
-    Benchmarking datasets are also available.
+    Benchmarking datasets can be utilized by specifying a repository parameter.
     
     Parameters
     ----------
@@ -42,7 +42,7 @@ class MLBenchmark:
         Also used to test performance of the leader model.
         Supported values: f1, f1_macro, f1_weighted, precision, recall, roc_auc, average_precision, balanced_accuracy,
         mcc and accuracy.
-    random_state: int, optional
+    random_state: int, default 42
         Value, used for controlling randomness during model training.
     timeout: int, optional
         Time budget in seconds of AutoML training on a single dataset.
@@ -58,7 +58,7 @@ class MLBenchmark:
 
     def __init__(
         self,
-        repository = None,
+        repository: Optional[DatasetRepository] = None,
         automl = 'ag',
         metric = 'f1',
         random_state = 42,
@@ -74,7 +74,7 @@ class MLBenchmark:
         self._verbosity: int
         # TODO: create a common class for fitted models.
         self._fitted_model = None
-        self._test_metrics: Optional[Set[str]] = None
+        self._test_metrics: Set[str] = set()
 
         self.verbosity = verbosity
         self.repository = repository
@@ -92,14 +92,14 @@ class MLBenchmark:
             logger.add(sys.stdout, level='INFO')
 
     def run(self) -> None:
-        self.repository.load_datasets()
+        datasets = self.repository.load_datasets()
         
-        for dataset in self.repository.datasets:
+        for dataset in datasets:
             self._run_on_dataset(dataset)
 
     @logger.catch(reraise=True)
     def _run_on_dataset(self, dataset: Dataset, x_and_y = False) -> None:
-        logger.info(f"Running on the dataset: Dataset(id={dataset.id}, name={dataset.name}).")
+        logger.info(f"Run for Dataset(id={dataset.id}, name={dataset.name}).")
         
         if not x_and_y:
             y_label = dataset.x.columns[-1]
@@ -259,14 +259,13 @@ class MLBenchmark:
         self._verbosity = value
 
     @property
-    def test_metrics(self) -> Optional[Set[str]]:
+    def test_metrics(self) -> Set[str]:
         return self._test_metrics
 
     @test_metrics.setter
     def test_metrics(self, metrics: Optional[List[str]]):
-        if self.test_metrics is None:
-            self._test_metrics = set()
-            self.test_metrics.add(self.validation_metric)
+        self.test_metrics.add(self.validation_metric)
+        
         if metrics is not None:
             for metric in metrics:
                 if metric not in [
@@ -296,4 +295,4 @@ class MLBenchmark:
                             'mcc',
                             'accuracy'].
                         """)
-                self._test_metrics.add(metric)
+                self.test_metrics.add(metric)
