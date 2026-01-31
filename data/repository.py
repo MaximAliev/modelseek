@@ -1,4 +1,5 @@
 from abc import ABC, abstractmethod
+import sys
 from typing import Optional, Union, List, Any, TypeVar, cast
 import numpy as np
 import pandas as pd
@@ -7,12 +8,27 @@ from imblearn.datasets import fetch_datasets
 from loguru import logger
 import itertools
 
-from data._domain import Dataset
+from core.domain import Dataset
 
 
 class DatasetRepository(ABC):
-    def __init__(self):
+    def __init__(self, verbosity=1):
         self._datasets: List[Dataset] = []
+        self._verbosity: int
+        
+        self._configure_logging(verbosity)
+    
+    def _configure_logging(self, verbosity: int) -> None:
+        logger.remove()
+        if verbosity == 3:
+            logger.add(sys.stdout, level='TRACE')
+        elif verbosity == 2:
+            logger.add(sys.stdout, level='DEBUG')
+        elif verbosity == 1:
+            logger.add(sys.stdout, level='INFO')
+        elif verbosity == 0:
+            logger.add(sys.stdout, level='SUCCESS')
+        self._verbosity = verbosity
 
     @abstractmethod
     def load_datasets(self, ids: Optional[Union[List[int], range]] = None, x_and_y = False) -> List[Dataset]:
@@ -23,11 +39,11 @@ class DatasetRepository(ABC):
         raise NotImplementedError()
 
 class ImbalancedDatasetRepository(DatasetRepository):
-    def __init__(self, verbose = False):
-        super().__init__()
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
 
         # TODO: it would be better if run in a parallel.
-        self._raw_datasets = fetch_datasets(data_home='datasets/imbalanced', verbose=verbose)
+        self._raw_datasets = fetch_datasets(data_home='datasets/imbalanced', verbose=True if self._verbosity > 1 else False)
 
     @logger.catch
     def load_dataset(self, id: int, x_and_y = False) -> Dataset:
@@ -82,11 +98,11 @@ class OpenMLDatasetRepository(DatasetRepository):
     verbosity: int, default 1
         Fetching information verbosity.
     """
-    def __init__(self, id: int, verbosity=1):
-        super().__init__()
+    def __init__(self, id: int, *args, **kwargs):
+        super().__init__(*args, **kwargs)
         self._suite_id = id
         openml.config.set_root_cache_directory("datasets/openml")
-        openml.config.set_console_log_level(verbosity)
+        openml.config.set_console_log_level(self._verbosity)
 
     @logger.catch
     def load_dataset(self, id: int, x_and_y = False) -> Dataset:
