@@ -32,8 +32,6 @@ class MLBenchmark:
     
     Parameters
     ----------
-    repository : DatasetRepository, optional
-        Name of the dataset repository for a benchmark.
     automl: str, default ag
         Name of the AutoML tool to run a benchmark.
         Supported values: ag (AutoGluon) and h2o.
@@ -58,7 +56,6 @@ class MLBenchmark:
 
     def __init__(
         self,
-        repository: Optional[DatasetRepository] = None,
         automl = 'ag',
         metric = 'f1',
         random_state = 42,
@@ -77,7 +74,6 @@ class MLBenchmark:
         self._test_metrics: Set[str] = set()
 
         self.verbosity = verbosity
-        self.repository = repository
         self.backend = (automl, kwargs)
         self.validation_metric = metric
         self.seed = random_state
@@ -98,89 +94,81 @@ class MLBenchmark:
             self._run_on_dataset(dataset)
 
     @logger.catch(reraise=True)
-    def _run_on_dataset(self, dataset: Dataset, x_and_y = False) -> None:
-        logger.info(f"Run for Dataset(id={dataset.id}, name={dataset.name}).")
-        
-        if not x_and_y:
-            y_label = dataset.x.columns[-1]
-            y = dataset.x[y_label]
-            x = dataset.x.drop([y_label], axis=1)
-        else:
-            x = dataset.x
-            y = dataset.y
-            y_label = y.name
-        
-        x_train, x_test, y_train, y_test = train_test_split(x, y)
-        
-        y_train = y_train.astype(object)
-        if y_test.dtype == 'category':
-            y_test = y_test.cat.codes
+    def run(self, dataset: Dataset) -> None:
+        try:
+            logger.info(f"Run for Dataset(id={dataset.id}, name={dataset.name}).")
+            
+            if dataset.y is None:
+                y_label = dataset.x.columns[-1]
+                y = dataset.x[y_label]
+                x = dataset.x.drop([y_label], axis=1)
+            else:
+                x = dataset.x
+                y = dataset.y
+                y_label = y.name
+            
+            x_train, x_test, y_train, y_test = train_test_split(x, y)
+            
+            y_train = y_train.astype(object)
+            if y_test.dtype == 'category':
+                y_test = y_test.cat.codes
 
-        class_belongings = Counter(y_train)
-        class_belongings_formatted = '; '.join(f"{k}: {v}" for k, v in class_belongings.items())
-        logger.debug(f"Class belongings: {{{class_belongings_formatted}}}")
+            class_belongings = Counter(y_train)
+            class_belongings_formatted = '; '.join(f"{k}: {v}" for k, v in class_belongings.items())
+            logger.debug(f"Class belongings: {{{class_belongings_formatted}}}")
 
-        pos_class_label = None
-        if len(class_belongings) == 2:
-            pos_class_label = infer_positive_target_class(class_belongings)
+            pos_class_label = None
+            if len(class_belongings) == 2:
+                pos_class_label = infer_positive_target_class(class_belongings)
 
-        if x_and_y:
-            training_dataset = Dataset(
-                id=dataset.id,
-                name=dataset.name,
-                x=x_train,
-                y=y_train,
+            if dataset.y is not None:
+                training_dataset = Dataset(
+                    id=dataset.id,
+                    name=dataset.name,
+                    x=x_train,
+                    y=y_train,
+                )
+            else:
+                df = pd.concat((x_train, y_train),axis=1)
+                training_dataset = Dataset(
+                    id=dataset.id,
+                    name=dataset.name,
+                    x=df
+                )
+
+            training_dataset.size = int(x_train.memory_usage(deep=True).sum() / (1024 ** 2))
+            logger.debug(f"Train sample size(floored) is {training_dataset.size}mb.")
+
+            validation_metric = self.validation_metric
+            if len(class_belongings) > 2 and str(self.backend) == 'AutoGluon':
+                validation_metric += '_weighted' 
+
+            task  = Task(
+                dataset=training_dataset,
+                metric=validation_metric,
+                timeout=self.timeout,
+                random_state=self.seed
             )
-        else:
-            df = pd.concat((x_train, y_train),axis=1)
-            training_dataset = Dataset(
-                id=dataset.id,
-                name=dataset.name,
-                x=df
-            )
 
-        training_dataset.size = int(x_train.memory_usage(deep=True).sum() / (1024 ** 2))
-        logger.debug(f"Train sample size(floored) is {training_dataset.size}mb.")
+            start_time = time.time()
+            self.backend.fit(task)
 
-        validation_metric = self.validation_metric
-        if len(class_belongings) > 2 and str(self.backend) == 'AutoGluon':
-            validation_metric += '_weighted' 
+            time_passed = time.time() - start_time
+            logger.info(f"Training took {time_passed // 60} min.")
 
-        task  = Task(
-            dataset=training_dataset,
-            metric=validation_metric,
-            timeout=self.timeout,
-            random_state=self.seed
-        )
+            y_predicted = self.backend.predict(x_test)
 
-        start_time = time.time()
-        self.backend.fit(task)
-
-        time_passed = time.time() - start_time
-        logger.info(f"Training took {time_passed // 60} min.")
-
-        y_predicted = self.backend.predict(x_test)
-
-        if str(self.backend) == 'H2O':
-            validation_metric += '_weighted'
-        logger.debug(f"Test metrics are {self.test_metrics}")
-        
-        self.backend.score(self.test_metrics, y_test, y_predicted, pos_class_label)
-
-    @property
-    def repository(self) -> DatasetRepository:
-        return self._repository
-    
-    @repository.setter
-    def repository(self, value: Optional[DatasetRepository]):
-        if value is None:
-            raise ValueError(
-                f"""
-                Invalid value of repository parameter:{value}.
-                Options available are instances of: [BinaryImbalancedDatasetRepository, OpenMLDatasetRepository].
-                """
-            )
-        self._repository = value
+            if str(self.backend) == 'H2O':
+                validation_metric += '_weighted'
+            logger.debug(f"Test metrics are {self.test_metrics}")
+            
+            self.backend.score(self.test_metrics, y_test, y_predicted, pos_class_label)
+        finally:
+            if self.backend == 'H2O':
+                import h2o
+                cluster = h2o.cluster()
+                if cluster is not None:
+                    cluster.shutdown()
     
     @property
     def validation_metric(self) -> str:
