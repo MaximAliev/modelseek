@@ -128,11 +128,7 @@ class AutoGluon(AutoML):
         self,
         task: Task,
     ) -> None:
-        dataset = task.dataset
-        metric = task.metric
-        timeout = task.timeout
-        
-        if metric not in [
+        if task.metric not in [
             'f1',
             'f1_macro',
             'f1_weighted',
@@ -144,19 +140,22 @@ class AutoGluon(AutoML):
             'mcc',
             'accuracy'
         ]:
-            raise ValueError(f"Metric {metric} is not supported by AutoGluon.")
+            raise ValueError(f"Metric {task.metric} is not supported by AutoGluon.")
 
-        ag_dataset = AutoGluonTabularDataset(dataset.x)
+        ag_dataset = AutoGluonTabularDataset(task.dataset.x)
 
         predictor = AutoGluonTabularPredictor(
-            label=dataset.x.columns[-1],
-            eval_metric=metric,
-            learner_kwargs={ "random_state": task.random_state}
+            label=task.dataset.x.columns[-1],
+            eval_metric=task.metric,
+            learner_kwargs={"random_state": task.seed}
         )
 
+        predictor_kwargs = {'presets': self.preset}
+        timeout = task.timeout
         if timeout is not None:
             timeout = float(timeout)
-        predictor.fit(ag_dataset, time_limit=timeout, presets=self.preset)
+            predictor_kwargs['time_limit'] = timeout
+        predictor.fit(ag_dataset, kwargs=predictor_kwargs)
 
         val_scores = predictor.leaderboard().get('score_val')
         if val_scores is None or len(val_scores) == 0:
@@ -222,11 +221,7 @@ class H2O(AutoML):
         self,
         task: Task,
     ) -> None:
-        dataset = task.dataset
-        metric = task.metric
-        timeout = task.timeout
-        
-        if metric not in [
+        if task.metric not in [
             'f1',
             'precision',
             'recall',
@@ -236,9 +231,9 @@ class H2O(AutoML):
             'mcc',
             'accuracy'
         ]:
-            raise ValueError(f"Metric {metric} is not supported by H2O.")
+            raise ValueError(f"Metric {task.metric} is not supported by H2O.")
         
-        x_dtypes = dataset.x.dtypes
+        x_dtypes = task.dataset.x.dtypes
         logger.debug(x_dtypes)
 
         self._df_dtypes = x_dtypes\
@@ -248,10 +243,10 @@ class H2O(AutoML):
             .mask(x_dtypes == np.float64, 'double')\
             .mask(x_dtypes == bool, 'int')\
             .to_list()
-        h2o_dataset = h2o.H2OFrame(dataset.x, column_types=self._df_dtypes)
+        h2o_dataset = h2o.H2OFrame(task.dataset.x, column_types=self._df_dtypes)
 
-        predictor = H2OAutoML(max_runtime_secs=timeout, seed=task.random_state)
-        predictor.train(x=list(dataset.x.columns[:-1]), y=str(dataset.x.columns[-1]), training_frame=h2o_dataset)
+        predictor = H2OAutoML(max_runtime_secs=task.timeout, seed=task.seed)
+        predictor.train(x=list(task.dataset.x.columns[:-1]), y=str(task.dataset.x.columns[-1]), training_frame=h2o_dataset)
 
         self._fitted_model = predictor.leader
     
