@@ -147,7 +147,7 @@ class MLBenchmark:
                 dataset=training_dataset,
                 metric=validation_metric,
                 timeout=self.timeout,
-                random_state=self.seed
+                seed=self.seed
             )
 
             start_time = time.time()
