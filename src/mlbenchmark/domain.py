@@ -8,11 +8,11 @@ import pandas as pd
 
 @dataclass
 class Dataset:
-    id: int
     name: str
     x: pd.DataFrame
     y: Optional[pd.Series] = None
     y_label: Optional[str] = None
+    id: Optional[int] = None
     size: Optional[int] = None
 
 @dataclass(frozen=True)
