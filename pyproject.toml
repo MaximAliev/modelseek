@@ -29,9 +29,6 @@ readme = "README.md"
 license= "GPL-3.0-or-later"
 license-files = ["LICENSE"]
 
-[tool.hatch.build.targets.wheel]
-packages = ["core", "data"]
-
 [project.optional-dependencies]
 cpu = []
 

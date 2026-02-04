@@ -16,10 +16,10 @@ from sklearn.exceptions import NotFittedError
 from loguru import logger
 from sklearn.base import BaseEstimator
 
-from core._automl import H2O, AutoML, AutoGluon
-from core.domain import Dataset, Task
-from data.repository import DatasetRepository, ImbalancedDatasetRepository, OpenMLDatasetRepository
-from core._helpers import infer_positive_target_class, train_test_split
+from src.mlbenchmark._automl import H2O, AutoML, AutoGluon
+from src.mlbenchmark.domain import Dataset, Task
+from src.mlbenchmark.repository import DatasetRepository, ImbalancedDatasetRepository, OpenMLDatasetRepository
+from src.mlbenchmark._helpers import infer_positive_target_class, train_test_split
 
 
 class MLBenchmark:
@@ -117,7 +117,7 @@ class MLBenchmark:
             class_belongings_formatted = '; '.join(f"{k}: {v}" for k, v in class_belongings.items())
             logger.debug(f"Class belongings: {{{class_belongings_formatted}}}")
 
-            pos_class_label = None
+            pos_class_label = 1
             if len(class_belongings) == 2:
                 pos_class_label = infer_positive_target_class(class_belongings)
 

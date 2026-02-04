@@ -5,7 +5,7 @@ import re
 from abc import ABC, abstractmethod
 from io import StringIO
 import sys
-from typing import Optional, Set, Union, final, List, Dict
+from typing import Any, Optional, Set, Union, final, List, Dict
 import h2o
 from h2o.automl import H2OAutoML
 import numpy as np
@@ -18,7 +18,7 @@ from loguru import logger
 import jdk
 import os
 
-from core.domain import Dataset, Task
+from src.mlbenchmark.domain import Dataset, Task
 
 
 class AutoML(ABC):
@@ -44,9 +44,9 @@ class AutoML(ABC):
     def score(
         self,
         metrics: Set[str],
-        y_test: pd.Series,
-        y_pred: pd.Series,
-        pos_label: Optional[Union[int, str]] = None,
+        y_test: Union[pd.Series, np.ndarray],
+        y_pred: Union[pd.Series, np.ndarray],
+        pos_label: Union[int, str] = 1,
     ) -> None:
         for metric in metrics:
             if metric.startswith('f1'):
@@ -150,12 +150,12 @@ class AutoGluon(AutoML):
             learner_kwargs={"random_state": task.seed}
         )
 
-        predictor_kwargs = {'presets': self.preset}
+        predictor_kwargs: Dict[str, Any] = {'presets': self.preset}
         timeout = task.timeout
         if timeout is not None:
             timeout = float(timeout)
             predictor_kwargs['time_limit'] = timeout
-        predictor.fit(ag_dataset, kwargs=predictor_kwargs)
+        predictor.fit(ag_dataset, **predictor_kwargs)
 
         val_scores = predictor.leaderboard().get('score_val')
         if val_scores is None or len(val_scores) == 0:
