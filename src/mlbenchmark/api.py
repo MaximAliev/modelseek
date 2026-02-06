@@ -16,13 +16,13 @@ from sklearn.exceptions import NotFittedError
 from loguru import logger
 from sklearn.base import BaseEstimator
 
-from src.mlbenchmark._automl import H2O, AutoML, AutoGluon
+from src.mlbenchmark._automl import H2O, AML, AutoGluon
 from src.mlbenchmark.domain import Dataset, Task
 from src.mlbenchmark.repository import DatasetRepository, ImbalancedDatasetRepository, OpenMLDatasetRepository
 from src.mlbenchmark._helpers import infer_positive_target_class, train_test_split
 
 
-class MLBenchmark:
+class Benchmark:
     """
     User interface for performing ML benchmarks.
 
@@ -32,9 +32,9 @@ class MLBenchmark:
     
     Parameters
     ----------
-    automl: str, default ag
+    backend: str, default ag
         Name of the AutoML tool to run a benchmark.
-        Supported values: ag (AutoGluon) and h2o.
+        Supported values: ag (AutoGluon) and h2o (H2O).
     metric: str, default f1
         Name of the metric to validate performance of ML models during training. 
         Also used to test performance of the leader model.
@@ -56,15 +56,15 @@ class MLBenchmark:
 
     def __init__(
         self,
-        automl = 'ag',
+        backend = 'ag',
         metric = 'f1',
         random_state = 42,
         timeout: Optional[int] = None,
         extra_metrics: Optional[List[str]] = None,
-        verbosity: int = 1,
+        verbosity: int = 2,
         **kwargs
     ):
-        self._backend: AutoML
+        self._aml: AML
         self._validation_metric: str
         self._seed: int
         self._timeout: Optional[int]
@@ -74,7 +74,7 @@ class MLBenchmark:
         self._test_metrics: Set[str] = set()
 
         self.verbosity = verbosity
-        self.backend = (automl, kwargs)
+        self.aml = (backend, kwargs)
         self.validation_metric = metric
         self.seed = random_state
         self.timeout = timeout
@@ -96,14 +96,14 @@ class MLBenchmark:
     @logger.catch(reraise=True)
     def run(self, dataset: Dataset) -> None:
         try:
-            logger.info(f"Run for Dataset(id={dataset.id}, name={dataset.name}).")
+            logger.info(f"{dataset.id=}, {dataset.name=}.")
             
             if dataset.y is None:
-                y_label = dataset.x.columns[-1]
-                y = dataset.x[y_label]
-                x = dataset.x.drop([y_label], axis=1)
+                y_label = dataset.X.columns[-1]
+                y = dataset.X[y_label]
+                x = dataset.X.drop([y_label], axis=1)
             else:
-                x = dataset.x
+                x = dataset.X
                 y = dataset.y
                 y_label = y.name
             
@@ -125,7 +125,7 @@ class MLBenchmark:
                 training_dataset = Dataset(
                     id=dataset.id,
                     name=dataset.name,
-                    x=x_train,
+                    X=x_train,
                     y=y_train,
                 )
             else:
@@ -133,38 +133,39 @@ class MLBenchmark:
                 training_dataset = Dataset(
                     id=dataset.id,
                     name=dataset.name,
-                    x=df
+                    X=df
                 )
 
             training_dataset.size = int(x_train.memory_usage(deep=True).sum() / (1024 ** 2))
             logger.debug(f"Train sample size(floored) is {training_dataset.size}mb.")
 
             validation_metric = self.validation_metric
-            if len(class_belongings) > 2 and str(self.backend) == 'AutoGluon':
+            if len(class_belongings) > 2 and str(self.aml) == 'AutoGluon':
                 validation_metric += '_weighted' 
 
             task  = Task(
                 dataset=training_dataset,
                 metric=validation_metric,
                 timeout=self.timeout,
-                seed=self.seed
+                seed=self.seed,
+                verbosity=self.verbosity
             )
 
             start_time = time.time()
-            self.backend.fit(task)
+            self.aml.fit(task)
 
             time_passed = time.time() - start_time
             logger.info(f"Training took {time_passed // 60} min.")
 
-            y_predicted = self.backend.predict(x_test)
+            y_predicted = self.aml.predict(x_test)
 
-            if str(self.backend) == 'H2O':
+            if str(self.aml) == 'H2O':
                 validation_metric += '_weighted'
             logger.debug(f"Test metrics are {self.test_metrics}")
             
-            self.backend.score(self.test_metrics, y_test, y_predicted, pos_class_label)
+            self.aml.score(self.test_metrics, y_test, y_predicted, pos_class_label)
         finally:
-            if self.backend == 'H2O':
+            if self.aml == 'H2O':
                 import h2o
                 cluster = h2o.cluster()
                 if cluster is not None:
@@ -206,15 +207,15 @@ class MLBenchmark:
         self._validation_metric = value
     
     @property
-    def backend(self) -> AutoML:
-        return self._backend
+    def aml(self) -> AML:
+        return self._aml
 
-    @backend.setter
-    def backend(self, value: Tuple[str, Dict[str, Any]]):
+    @aml.setter
+    def aml(self, value: Tuple[str, Dict[str, Any]]):
         if value[0] == 'ag':
-            self._backend = AutoGluon(**value[1])
+            self._aml = AutoGluon(**value[1])
         elif value[0] == 'h2o':
-            self._backend = H2O(**value[1])
+            self._aml = H2O(**value[1])
         else:
             raise ValueError(
                 f"""
@@ -244,7 +245,10 @@ class MLBenchmark:
     
     @verbosity.setter
     def verbosity(self, value: int):
-        self._verbosity = value
+        if value > 3 or value < 0:
+            raise ValueError("Verbosity should be in a range (0,4).")
+        else:
+            self._verbosity = value
 
     @property
     def test_metrics(self) -> Set[str]:

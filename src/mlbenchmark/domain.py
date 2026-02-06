@@ -9,7 +9,7 @@ import pandas as pd
 @dataclass
 class Dataset:
     name: str
-    x: pd.DataFrame
+    X: pd.DataFrame
     y: Optional[pd.Series] = None
     y_label: Optional[str] = None
     id: Optional[int] = None
@@ -21,3 +21,4 @@ class Task:
     metric: str
     timeout: Optional[int] = None
     seed: int = 42
+    verbosity: int = 2

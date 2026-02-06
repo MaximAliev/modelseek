@@ -21,13 +21,13 @@ class DatasetRepository(ABC):
     def _configure_logging(self, verbosity: int) -> None:
         logger.remove()
         if verbosity == 3:
-            logger.add(sys.stdout, level='TRACE')
-        elif verbosity == 2:
             logger.add(sys.stdout, level='DEBUG')
-        elif verbosity == 1:
+        elif verbosity == 2:
             logger.add(sys.stdout, level='INFO')
-        elif verbosity == 0:
+        elif verbosity == 1:
             logger.add(sys.stdout, level='SUCCESS')
+        elif verbosity == 0:
+            logger.add(sys.stdout, level='WARN')
         self._verbosity = verbosity
 
     @abstractmethod
@@ -63,7 +63,7 @@ class ImbalancedDatasetRepository(DatasetRepository):
                 return Dataset(
                     id=id,
                     name=dataset_name,
-                    x=x,
+                    X=x,
                     y=y
                 )
             elif i > id:
@@ -143,7 +143,7 @@ class OpenMLDatasetRepository(DatasetRepository):
         return Dataset(
             id=id,
             name=dataset.name,
-            x=x,
+            X=x,
             y=y
         )
 

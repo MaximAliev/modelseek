@@ -21,9 +21,8 @@ import os
 from src.mlbenchmark.domain import Dataset, Task
 
 
-class AutoML(ABC):
-    def __init__(self, verbosity=1):
-        self._verbosity = verbosity
+class AML(ABC):
+    def __init__(self):
         self._fitted_model = None
     
     @abstractmethod
@@ -112,7 +111,7 @@ class AutoML(ABC):
         return self.__class__.__name__
 
 
-class AutoGluon(AutoML):
+class AutoGluon(AML):
     def __init__(
         self,
         preset='medium',
@@ -142,11 +141,12 @@ class AutoGluon(AutoML):
         ]:
             raise ValueError(f"Metric {task.metric} is not supported by AutoGluon.")
 
-        ag_dataset = AutoGluonTabularDataset(task.dataset.x)
+        ag_dataset = AutoGluonTabularDataset(task.dataset.X)
 
         predictor = AutoGluonTabularPredictor(
-            label=task.dataset.x.columns[-1],
+            label=task.dataset.X.columns[-1],
             eval_metric=task.metric,
+            verbosity=task.verbosity,
             learner_kwargs={"random_state": task.seed}
         )
 
@@ -200,7 +200,7 @@ class AutoGluon(AutoML):
         self._preset = preset
 
 
-class H2O(AutoML):
+class H2O(AML):
     def __init__(
         self,
         *args,
@@ -233,7 +233,7 @@ class H2O(AutoML):
         ]:
             raise ValueError(f"Metric {task.metric} is not supported by H2O.")
         
-        x_dtypes = task.dataset.x.dtypes
+        x_dtypes = task.dataset.X.dtypes
         logger.debug(x_dtypes)
 
         self._df_dtypes = x_dtypes\
@@ -243,10 +243,21 @@ class H2O(AutoML):
             .mask(x_dtypes == np.float64, 'double')\
             .mask(x_dtypes == bool, 'int')\
             .to_list()
-        h2o_dataset = h2o.H2OFrame(task.dataset.x, column_types=self._df_dtypes)
+        h2o_dataset = h2o.H2OFrame(task.dataset.X, column_types=self._df_dtypes)
 
-        predictor = H2OAutoML(max_runtime_secs=task.timeout, seed=task.seed)
-        predictor.train(x=list(task.dataset.x.columns[:-1]), y=str(task.dataset.x.columns[-1]), training_frame=h2o_dataset)
+        verbosity: str
+        match task.verbosity:
+            case 0:
+                verbosity = 'error'
+            case 1:
+                verbosity = 'warn'
+            case 2:
+                verbosity = 'info'
+            case 3:
+                verbosity = 'debug'
+            
+        predictor = H2OAutoML(max_runtime_secs=task.timeout, seed=task.seed, verbosity=verbosity)
+        predictor.train(x=list(task.dataset.X.columns[:-1]), y=str(task.dataset.X.columns[-1]), training_frame=h2o_dataset)
 
         self._fitted_model = predictor.leader
     
