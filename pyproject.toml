@@ -3,13 +3,24 @@ requires = ["hatchling >= 1.26"]
 build-backend = "hatchling.build"
 
 [project]
-name = "mlbenchmark"
+name = "modelseek"
 version = "0.1.0"
+authors = [
+  { name="Maksim Aliev", email="imaxaliev@gmail.com" },
+]
+readme = "README.md"
+description = "Library for automated modelling on tabular data"
 requires-python = ">=3.10"
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "Operating System :: OS Independent",
+]
+license= "Apache-2.0"
+license-files = ["LICENSE"]
+
 dependencies = [
-    "autogluon-tabular[catboost,lightgbm,xgboost,skex,fastai,ray,realmlp,tabicl,tabpfn,tabdpt]==1.5.0",
-    "datasphere>=0.10.0",
     "docutils==0.21.2",
+    "autogluon-tabular[catboost,lightgbm,xgboost,skex,fastai,ray,realmlp,tabicl,tabpfn,tabdpt]==1.5.0",
     "imbalanced-learn==0.14.1",
     "matplotlib==3.7.5",
     "numpy==1.26.0",
@@ -17,27 +28,46 @@ dependencies = [
     "pandas==2.2.3",
     "pytest==8.3.5",
     "seaborn==0.13.2",
-    "torch>=2.2,<2.7",
     "tqdm==4.66.5",
     "h2o>=3.46.0.9",
     "loguru>=0.7.3",
     "polars==1.36.1",
-    "install-jdk==1.1.0",
 ]
 
-readme = "README.md"
-license= "GPL-3.0-or-later"
-license-files = ["LICENSE"]
+[project.urls]
+Homepage = "https://github.com/MaximAliev/modelseek"
+
+[dependency-groups]
+dev = [
+    "datasphere==0.10.0",
+    "install-jdk==1.1.0"
+]
 
 [project.optional-dependencies]
-cpu = []
+cuda = ["torch>=2.6,<2.10"]
+cpu = ["torch>=2.6,<2.10"]
+
+[tool.uv]
+conflicts = [
+  [
+    { extra = "cpu" },
+    { extra = "gpu" },
+  ],
+]
 
 [tool.uv.sources]
 torch = [
-    { index = "torch-cpu", marker = "extra == 'cpu'" }
+    { index = "torch-cuda", extra = "cuda" },
+    { index = "torch", extra = "cpu" },
 ]
 
 [[tool.uv.index]]
-name = "torch-cpu"
-url = "https://download.pytorch.org/whl/cpu"
+name = "torch"
+url = "https://download.pytorch.org/whl/cpu/"
+explicit = true
+
+
+[[tool.uv.index]]
+name = "torch-cuda"
+url = "https://download.pytorch.org/whl/cu124/"
 explicit = true
