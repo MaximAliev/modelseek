@@ -18,7 +18,7 @@ from loguru import logger
 import jdk
 import os
 
-from src.mlbenchmark.domain import Dataset, Task
+from src.modelseek.domain import Dataset, Task
 
 
 class AML(ABC):
@@ -245,7 +245,7 @@ class H2O(AML):
             .to_list()
         h2o_dataset = h2o.H2OFrame(task.dataset.X, column_types=self._df_dtypes)
 
-        verbosity: str
+        verbosity = 'warn'
         match task.verbosity:
             case 0:
                 verbosity = 'error'

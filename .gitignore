@@ -6,6 +6,7 @@
 *.out
 __pycache__/
 *.pkl
+dist/
 
 AutogluonModels/
 datasets/

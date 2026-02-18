@@ -16,17 +16,17 @@ from sklearn.exceptions import NotFittedError
 from loguru import logger
 from sklearn.base import BaseEstimator
 
-from src.mlbenchmark._automl import H2O, AML, AutoGluon
-from src.mlbenchmark.domain import Dataset, Task
-from src.mlbenchmark.repository import DatasetRepository, ImbalancedDatasetRepository, OpenMLDatasetRepository
-from src.mlbenchmark._helpers import infer_positive_target_class, train_test_split
+from src.modelseek._automl import H2O, AML, AutoGluon
+from src.modelseek.domain import Dataset, Task
+from src.modelseek.repository import DatasetRepository, ImbalancedDatasetRepository, OpenMLDatasetRepository
+from src.modelseek._helpers import infer_positive_target_class, train_test_split
 
 
-class Benchmark:
+class ModelSeek:
     """
-    User interface for performing ML benchmarks.
+    User interface for performing automated modelling.
 
-    This class presents an unified API to run different ML methods on various settings.
+    This class presents an unified API to run different AutoML scenarios.
 
     Benchmarking datasets can be utilized by specifying a repository parameter.
     
@@ -34,7 +34,7 @@ class Benchmark:
     ----------
     backend: str, default ag
         Name of the AutoML tool to run a benchmark.
-        Supported values: ag (AutoGluon) and h2o (H2O).
+        Supported values: autogluon and h2o.
     metric: str, default f1
         Name of the metric to validate performance of ML models during training. 
         Also used to test performance of the leader model.
@@ -56,7 +56,7 @@ class Benchmark:
 
     def __init__(
         self,
-        backend = 'ag',
+        backend = 'autogluon',
         metric = 'f1',
         random_state = 42,
         timeout: Optional[int] = None,
@@ -212,7 +212,7 @@ class Benchmark:
 
     @aml.setter
     def aml(self, value: Tuple[str, Dict[str, Any]]):
-        if value[0] == 'ag':
+        if value[0] == 'autogluon':
             self._aml = AutoGluon(**value[1])
         elif value[0] == 'h2o':
             self._aml = H2O(**value[1])
@@ -220,7 +220,7 @@ class Benchmark:
             raise ValueError(
                 f"""
                 Invalid value of automl parameter: {value[0]}.
-                Options available: ['ag', 'h2o'].
+                Options available: ['autogluon', 'h2o'].
                 """)
     
     @property

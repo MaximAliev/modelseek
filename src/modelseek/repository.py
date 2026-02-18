@@ -8,7 +8,7 @@ from imblearn.datasets import fetch_datasets
 from loguru import logger
 import itertools
 
-from src.mlbenchmark.domain import Dataset
+from src.modelseek.domain import Dataset
 
 
 class DatasetRepository(ABC):
