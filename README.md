@@ -29,7 +29,7 @@ dataset = Dataset(name='ecoli', x=pd.read_csv(path_to_local_data))
 modelseek = Modeller(
     automl='autogluon',
     metric='f1',
-    timeout=60,
+    timeout=3600,
     verbosity=2
 )
 modelseek.run(dataset)
@@ -47,7 +47,7 @@ modelseek = Modeller(
     automl='autogluon',
     preset='best',
     metric='f1',
-    timeout=360,
+    timeout=3600,
     verbosity=1
 )
 
