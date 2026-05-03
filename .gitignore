@@ -17,5 +17,4 @@ datasets/
 logs/
 cloud.yaml
 cloud.sh
-main.py
 requirements.txt
