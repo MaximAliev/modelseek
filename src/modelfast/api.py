@@ -17,13 +17,13 @@ from sklearn.exceptions import NotFittedError
 from loguru import logger
 from sklearn.base import BaseEstimator
 
-from src.modelfind._automl import H2O, AML, AutoGluon
-from src.modelfind.domain import Dataset, Task
-from src.modelfind.repository import DatasetRepository, ImbalancedDatasetRepository, OpenMLDatasetRepository
-from src.modelfind._helpers import infer_positive_target_class, train_test_split
+from src.modelfast._automl import H2O, AML, AutoGluon, ModelFast
+from src.modelfast.domain import Dataset, Task
+from src.modelfast.repository import DatasetRepository, ImbalancedDatasetRepository, OpenMLDatasetRepository
+from src.modelfast._helpers import infer_positive_target_class, train_test_split
 
 
-class ModelFind:
+class Modeler:
     """
     User interface for performing automated modelling.
 
@@ -35,7 +35,7 @@ class ModelFind:
     ----------
     backend: str, default ag
         Name of the AutoML tool to run a benchmark.
-        Supported values: autogluon and h2o.
+        Supported values: autogluon, h2o and modelfind.
     metric: str, default f1
         Name of the metric to validate performance of ML models during training. 
         Also used to test performance of the leader model.
@@ -154,14 +154,15 @@ class ModelFind:
 
             start_time = time.time()
             self.aml.fit(task)
-
             time_passed = time.time() - start_time
-            logger.info(f"Training took {time_passed // 60} min.")
+            
+            logger.success(f"Training took {time_passed // 60} min.")
 
             y_predicted = self.aml.predict(x_test)
 
             if str(self.aml) == 'H2O':
                 validation_metric += '_weighted'
+            
             logger.debug(f"Test metrics are {self.test_metrics}")
             
             self.aml.score(self.test_metrics, y_test, y_predicted, pos_class_label)
@@ -218,11 +219,13 @@ class ModelFind:
             self._aml = AutoGluon(**value[1])
         elif value[0] == 'h2o':
             self._aml = H2O(**value[1])
+        elif value[0] == 'modelfast':
+            self._aml = ModelFast(**value[1])
         else:
             raise ValueError(
                 f"""
                 Invalid value of automl parameter: {value[0]}.
-                Options available: ['autogluon', 'h2o'].
+                Options available: ['autogluon', 'h2o', 'modelfast'].
                 """)
     
     @property

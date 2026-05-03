@@ -8,7 +8,7 @@ from imblearn.datasets import fetch_datasets
 from loguru import logger
 import itertools
 
-from src.modelfind.domain import Dataset
+from src.modelfast.domain import Dataset
 
 
 class DatasetRepository(ABC):

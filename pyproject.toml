@@ -3,14 +3,14 @@ requires = ["hatchling >= 1.26"]
 build-backend = "hatchling.build"
 
 [project]
-name = "modelfind"
+name = "modelfast"
 version = "0.1.0"
 authors = [
   { name="Maksim Aliev", email="imaxaliev@gmail.com" },
 ]
 readme = "README.md"
-description = "Library for automated modelling on tabular data."
-requires-python = ">=3.10"
+description = "Library for fast ML modeling"
+requires-python = ">=3.11"
 classifiers = [
     "Programming Language :: Python :: 3",
     "Operating System :: OS Independent",
@@ -20,7 +20,7 @@ license-files = ["LICENSE"]
 
 # TODO: group dependencies.
 dependencies = [
-    "autogluon-tabular[all, skex,realmlp,tabicl,tabpfn,tabdpt]==1.5.0",
+    "autogluon-tabular[all,skex,realmlp,tabicl,tabpfn,tabdpt]==1.5.0",
     "h2o==3.46.0.9",
     "imbalanced-learn==0.14.1",
     "openml==0.15.1",
@@ -28,16 +28,20 @@ dependencies = [
     "pandas",    
     "loguru",
     "ipython",
+    "optuna",
+    "catboost",
+    "tabpfn-client"
 ]
 
 [project.urls]
-Homepage = "https://github.com/MaximAliev/modelbest"
+Homepage = "https://github.com/MaximAliev/modelfast"
 
 [dependency-groups]
 dev = [
+    "datasphere>=0.10.0",
     "install-jdk==1.1.0",
     "pytest",
     "pyqt5",
     "matplotlib",
-    "twine"
+    "twine",
 ]

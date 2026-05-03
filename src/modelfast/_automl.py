@@ -18,11 +18,12 @@ from loguru import logger
 import jdk
 import os
 
-from src.modelfind.domain import Dataset, Task
+from src.modelfast._predictor import Predictor
+from src.modelfast.domain import Dataset, Task
 
 
 class AML(ABC):
-    def __init__(self):
+    def __init__(self) -> None:
         self._fitted_model = None
     
     @abstractmethod
@@ -79,7 +80,7 @@ class AML(ABC):
                 logger.success(f"MCC score: {score:.3f}")
             elif metric == 'accuracy':
                 score = accuracy_score(y_test, y_pred)
-                logger.success(f"Balanced accuracy score: {score:.3f}")
+                logger.success(f"Accuracy score: {score:.3f}")
             else:
                 raise ValueError(
                     f"""
@@ -117,7 +118,7 @@ class AutoGluon(AML):
         preset='medium',
         *args,
         **kwargs
-    ):
+    ) -> None:
         super().__init__(*args, **kwargs)
         self._preset = preset
         self._fitted_model: Optional[AutoGluonTabularPredictor] = None
@@ -141,7 +142,7 @@ class AutoGluon(AML):
         ]:
             raise ValueError(f"Metric {task.metric} is not supported by AutoGluon.")
 
-        ag_dataset = AutoGluonTabularDataset(task.dataset.X)
+        dataset: AutoGluonTabularDataset = AutoGluonTabularDataset(task.dataset.X)
 
         predictor = AutoGluonTabularPredictor(
             label=task.dataset.X.columns[-1],
@@ -155,7 +156,7 @@ class AutoGluon(AML):
         if timeout is not None:
             timeout = float(timeout)
             predictor_kwargs['time_limit'] = timeout
-        predictor.fit(ag_dataset, **predictor_kwargs)
+        predictor.fit(dataset, **predictor_kwargs)
 
         val_scores = predictor.leaderboard().get('score_val')
         if val_scores is None or len(val_scores) == 0:
@@ -205,7 +206,7 @@ class H2O(AML):
         self,
         *args,
         **kwargs
-    ):
+    ) -> None:
         super().__init__(*args, **kwargs)
         self._fitted_model = None
 
@@ -269,5 +270,53 @@ class H2O(AML):
         dataset_test = h2o.H2OFrame(x_test, column_types=self._df_dtypes[:-1])
         
         predictions = self._fitted_model.predict(dataset_test).as_data_frame(use_multi_thread=True).iloc[:, 0]
+
+        return predictions
+
+class ModelFast(AML):
+    def __init__(
+        self,
+        *args,
+        **kwargs
+    ) -> None:
+        super().__init__(*args, **kwargs)
+        self._fitted_model = None
+
+    @logger.catch
+    def fit(
+        self,
+        task: Task,
+    ) -> None:
+        if task.metric not in [
+            'f1',
+            'f1_macro',
+            'f1_weighted',
+            'precision',
+            'recall',
+            'roc_auc',
+            'average_precision',
+            'balanced_accuracy',
+            'mcc',
+            'accuracy'
+        ]:
+            raise ValueError(f"Metric {task.metric} is not supported by ModelFast.")
+
+        dataset = task.dataset.X
+
+        predictor = Predictor(
+            label=task.dataset.X.columns[-1],
+            eval_metric=task.metric,
+            verbosity=task.verbosity,
+            seed=task.seed
+        )
+
+        self._fitted_model = predictor.fit(dataset)
+    
+    @logger.catch
+    def predict(self, x_test: pd.DataFrame) -> Union[pd.Series, np.ndarray]:
+        if self._fitted_model is None:
+            raise NotFittedError()
+        dataset_test = AutoGluonTabularDataset(x_test)
+        predictions = self._fitted_model.predict(dataset_test).astype(int)
 
         return predictions

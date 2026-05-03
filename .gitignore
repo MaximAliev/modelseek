@@ -5,15 +5,16 @@
 *.lock
 *.out
 __pycache__/
-*.pkl
+*.log
+
+AutogluonModels/
+catboost_info/
+hyperopt/
+openml_cache/
 
 dist/
-AutogluonModels/
 datasets/
 logs/
-openml_cache/
-hyperopt/
-Imbaml/
 cloud.yaml
 cloud.sh
 main.py

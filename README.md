@@ -1,6 +1,6 @@
-# ModelFind
+# ModelFast
 
-ModelFind is a tool, that automates modelling on your (or benchmark) data, acting as a convinient wrapper to the state-of-the-art automated machine learning (AutoML) libraries. 
+ModelFast is a tool, that automates modelling on your (or benchmark) data, acting as a convinient wrapper to the state-of-the-art automated machine learning (AutoML) libraries. 
 
 It can be utilized by ML engineers, as well as the common users, to test different modelling scenarios.
 
@@ -9,24 +9,27 @@ This project is under active development and support for the new tasks, as well 
 
 ## Installation and usage
 
-<!-- ### Installation
-```
-pip install modelfind
-```  -->
+### Installation
+
+1. Clone the project.
+
+2. Initialize project with `uv init` and create a virtual environment with `uv venv -p $version`, where $version >= 3.11.
+
+3. Install dependencies with `uv sync --no-dev`. 
 
 ### Usage examples
 
 Using a local dataset.
 ```python
-from src.modelfind.domain import Dataset
-from src.modelfind.api import ModelFind
+from src.modelfast.domain import Dataset
+from src.modelfast.api import Modeler
 import pandas as pd
 
 
 path_to_local_data = "datasets/local/ecoli.csv"
 dataset = Dataset(name='ecoli', x=pd.read_csv(path_to_local_data))
 
-automl = ModelFind(
+automl = Modeler(
     backend='autogluon',
     metric='f1',
     timeout=3600,
@@ -37,13 +40,13 @@ automl.run(dataset)
 
 Using a dataset(or collection of such) from a wellknown-source.
 ```python
-from src.modelfind.api import ModelFind
-from src.modelfind.repository import OpenMLDatasetRepository
+from src.modelfast.api import Modeler
+from src.modelfast.repository import OpenMLDatasetRepository
 
 
 # WARNING: This OpenML benchmark contains big datasets, that may not fit into your RAM.
 datasets = OpenMLDatasetRepository(id=271, verbosity=1).load_datasets(x_and_y=False)
-automl = ModelFind(
+automl = Modeler(
     backend='autogluon',
     preset='best',
     metric='f1',
