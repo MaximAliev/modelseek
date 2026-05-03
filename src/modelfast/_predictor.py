@@ -24,7 +24,7 @@ class Predictor:
         # token = get_access_token()
         # set_access_token(token)
 
-    def objective(self, dataset: pd.DataFrame, trial: optuna.Trial):
+    def objective(self, X: pd.DataFrame, y: pd.Series, trial: optuna.Trial):
         # iterations_param = trial.suggest_int("iterations", 30, 3000)
         # learning_rate_param = trial.suggest_float("learning_rate", 1e-5, 1e-1)
         # depth_param = trial.suggest_int("depth", 2, 8, step=2)
@@ -33,17 +33,9 @@ class Predictor:
         #     learning_rate=learning_rate_param,
         #     depth=depth_param
         # )
-        # n_estimators_param = trial.suggest_int("n_estimators", 8, 80)
-        clf = TabPFNClassifier(
-            tuning_config={
-                "calibrate_temperature": True,
-                "tune_decision_thresholds": True,
-            },
-            # n_estimators=n_estimators_param
-        )
-
-        y = LabelEncoder().fit_transform(dataset[self._label])
-        X = dataset.drop(labels=[self._label], axis=1)
+        hyperparameters = {"n_estimators": trial.suggest_int("n_estimators", 8, 80)}
+        clf = TabPFNClassifier(**hyperparameters)
+        trial.set_user_attr("model", clf)
 
         val_score = cross_val_score(
             estimator=clf,
@@ -62,7 +54,23 @@ class Predictor:
 
     def fit(self, dataset):
         study = optuna.create_study(direction='maximize')
-        study.optimize(partial(self.objective, dataset), n_trials=3)
+        y = LabelEncoder().fit_transform(dataset[self._label])
+        X = dataset.drop(labels=[self._label], axis=1)
 
-        logger.success(study.best_value)
-        logger.success(study.best_trial.params)
+        default_hyperparameters = {}
+        if X.shape[0] < 500:
+            default_hyperparameters["balance_probabilities"] = True
+        else:
+             default_hyperparameters["tuning_config"] = {"calibrate_temperature":True, "tune_decision_thresholds": True}
+        
+        partial_sampler = optuna.samplers.PartialFixedSampler(default_hyperparameters, study.sampler)
+        study.sampler = partial_sampler
+        
+        study.optimize(partial(self.objective, X, y), n_trials=5)
+
+        logger.success(f"Validation score: {study.best_value}.")
+        best_model = study.best_trial.user_attrs.get("model")
+        
+        best_model.fit(X, y)
+        
+        return best_model

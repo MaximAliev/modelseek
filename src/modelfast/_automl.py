@@ -319,4 +319,4 @@ class ModelFast(AML):
         dataset_test = AutoGluonTabularDataset(x_test)
         predictions = self._fitted_model.predict(dataset_test).astype(int)
 
-        return predictions
+        return list(map(lambda prediction: float(2 * prediction - 1), predictions))

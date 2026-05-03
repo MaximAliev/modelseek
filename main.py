@@ -10,7 +10,7 @@ def main():
         metric='f1',
         extra_metrics=['precision', 'recall'],
         timeout=3600,
-        verbosity=2
+        verbosity=1
     )
 
     for dataset in datasets:
