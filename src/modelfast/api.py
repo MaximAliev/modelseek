@@ -85,14 +85,19 @@ class Modeler:
 
     def _configure_logging(self) -> None:
         logger.remove()
+
+        logging_level: str
         if self.verbosity == 3:
-            logger.add(sys.stdout, level='TRACE')
+            logging_level = 'TRACE'
         elif self.verbosity == 2:
-            logger.add(sys.stdout, level='DEBUG')
+            logging_level = 'DEBUG'
         elif self.verbosity == 1:
-            logger.add(sys.stdout, level='INFO')
+            logging_level = 'INFO'
         elif self.verbosity == 0:
-            logger.add(sys.stdout, level='SUCCESS')
+            logging_level = 'SUCCESS'
+
+        logger.add(sys.stdout, level=logging_level)
+        logger.add("logs/out.log", level=logging_level)
 
     @logger.catch(reraise=True)
     def run(self, dataset: Dataset) -> None:

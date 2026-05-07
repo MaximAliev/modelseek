@@ -6,16 +6,11 @@ from abc import ABC, abstractmethod
 from io import StringIO
 import sys
 from typing import Any, Optional, Set, Union, final, List, Dict
-import h2o
-from h2o.automl import H2OAutoML
 import numpy as np
 import pandas as pd
 from sklearn.exceptions import NotFittedError
 from sklearn.metrics import confusion_matrix, fbeta_score, balanced_accuracy_score, matthews_corrcoef, recall_score, precision_score, average_precision_score, roc_auc_score, accuracy_score
-from autogluon.tabular import TabularDataset as AutoGluonTabularDataset, TabularPredictor as AutoGluonTabularPredictor
-from autogluon.core.metrics import make_scorer
 from loguru import logger
-import jdk
 import os
 
 from src.modelfast._predictor import Predictor
@@ -119,6 +114,9 @@ class AutoGluon(AML):
         *args,
         **kwargs
     ) -> None:
+        from autogluon.tabular import TabularDataset as AutoGluonTabularDataset, TabularPredictor as AutoGluonTabularPredictor
+        from autogluon.core.metrics import make_scorer
+        
         super().__init__(*args, **kwargs)
         self._preset = preset
         self._fitted_model: Optional[AutoGluonTabularPredictor] = None
@@ -207,11 +205,15 @@ class H2O(AML):
         *args,
         **kwargs
     ) -> None:
+        import h2o
+        from h2o.automl import H2OAutoML
+
         super().__init__(*args, **kwargs)
         self._fitted_model = None
 
         # Datasphere-specific logic.
         if os.path.exists('/job/'):
+            import jdk
             jdk.install('17')
             os.environ['JAVA_HOME'] = '/job/.jdk/jdk-17.0.17+10'
         
@@ -316,7 +318,6 @@ class ModelFast(AML):
     def predict(self, x_test: pd.DataFrame) -> Union[pd.Series, np.ndarray]:
         if self._fitted_model is None:
             raise NotFittedError()
-        dataset_test = AutoGluonTabularDataset(x_test)
-        predictions = self._fitted_model.predict(dataset_test).astype(int)
+        predictions = self._fitted_model.predict(x_test).astype(int)
 
         return list(map(lambda prediction: float(2 * prediction - 1), predictions))

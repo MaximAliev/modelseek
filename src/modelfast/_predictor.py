@@ -10,6 +10,7 @@ from sklearn.calibration import LabelEncoder
 from sklearn.metrics import f1_score, make_scorer
 from sklearn.model_selection import StratifiedKFold, cross_val_score
 from tabpfn import TabPFNClassifier
+from tabpfn.finetuning import FinetunedTabPFNClassifier
 
 class Predictor:
     def __init__(self, label, eval_metric, verbosity, seed) -> None:
@@ -27,8 +28,8 @@ class Predictor:
         #     learning_rate=learning_rate_param,
         #     depth=depth_param
         # )
-        hyperparameters = {"n_estimators": trial.suggest_int("n_estimators", 8, 80)}
-        clf = TabPFNClassifier(**hyperparameters)
+        hyperparameters = {"learning_rate": trial.suggest_float("learning_rate", 1e-5, 1e-4)}
+        clf = FinetunedTabPFNClassifier(**hyperparameters)
         trial.set_user_attr("model", clf)
 
         val_score = cross_val_score(
@@ -51,7 +52,9 @@ class Predictor:
         y = LabelEncoder().fit_transform(dataset[self._label])
         X = dataset.drop(labels=[self._label], axis=1)
 
-        default_hyperparameters = {}
+        default_hyperparameters = {
+            "device": "cuda",
+        }
         if X.shape[0] < 500:
             default_hyperparameters["balance_probabilities"] = True
         else:
@@ -60,7 +63,7 @@ class Predictor:
         partial_sampler = optuna.samplers.PartialFixedSampler(default_hyperparameters, study.sampler)
         study.sampler = partial_sampler
         
-        study.optimize(partial(self.objective, X, y), n_trials=2)
+        study.optimize(partial(self.objective, X, y), n_trials=5)
 
         logger.success(f"Validation score: {study.best_value}.")
         best_model = study.best_trial.user_attrs.get("model")
