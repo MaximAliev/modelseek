@@ -3,7 +3,7 @@ from src.modelfast.api import Modeler
 from src.modelfast.repository import ImbalancedDatasetRepository
 
 def main():
-    datasets = ImbalancedDatasetRepository(verbosity=2).load_datasets()
+    datasets = ImbalancedDatasetRepository(verbosity=2).load_datasets(ids=[1,2,3,4,6,7,8,9,13,14,16,18,19,21,23,25,26])
 
     modelfind = Modeler(
         backend='modelfast',

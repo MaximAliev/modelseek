@@ -9,20 +9,14 @@ import pandas as pd
 from sklearn.calibration import LabelEncoder
 from sklearn.metrics import f1_score, make_scorer
 from sklearn.model_selection import StratifiedKFold, cross_val_score
-# from tabpfn_client import TabPFNClassifier, get_access_token, set_access_token
 from tabpfn import TabPFNClassifier
 
 class Predictor:
     def __init__(self, label, eval_metric, verbosity, seed) -> None:
-        # self._authenticate()
         self._label = label
         self._eval_metric = eval_metric,
         self._verbosity = verbosity,
         self._seed = seed
-
-    # def _authenticate(self):
-        # token = get_access_token()
-        # set_access_token(token)
 
     def objective(self, X: pd.DataFrame, y: pd.Series, trial: optuna.Trial):
         # iterations_param = trial.suggest_int("iterations", 30, 3000)
@@ -66,7 +60,7 @@ class Predictor:
         partial_sampler = optuna.samplers.PartialFixedSampler(default_hyperparameters, study.sampler)
         study.sampler = partial_sampler
         
-        study.optimize(partial(self.objective, X, y), n_trials=5)
+        study.optimize(partial(self.objective, X, y), n_trials=2)
 
         logger.success(f"Validation score: {study.best_value}.")
         best_model = study.best_trial.user_attrs.get("model")
