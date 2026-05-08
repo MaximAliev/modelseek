@@ -97,7 +97,7 @@ class Modeler:
             logging_level = 'SUCCESS'
 
         logger.add(sys.stdout, level=logging_level)
-        logger.add("logs/out.log", level=logging_level)
+        logger.add("logs/tabpfn.log", level=logging_level)
 
     @logger.catch(reraise=True)
     def run(self, dataset: Dataset) -> None:

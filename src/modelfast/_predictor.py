@@ -28,8 +28,8 @@ class Predictor:
         #     learning_rate=learning_rate_param,
         #     depth=depth_param
         # )
-        hyperparameters = {"learning_rate": trial.suggest_float("learning_rate", 1e-5, 1e-4)}
-        clf = TabPFNClassifier(**hyperparameters)
+        # hyperparameters = {"learning_rate": trial.suggest_float("learning_rate", 1e-5, 1e-4)}
+        clf = TabPFNClassifier()
         trial.set_user_attr("model", clf)
 
         val_score = cross_val_score(
@@ -48,6 +48,8 @@ class Predictor:
 
 
     def fit(self, dataset):
+        import os
+        logger.info(os.environ["TABPFN_TOKEN"])
         study = optuna.create_study(direction='maximize')
         y = LabelEncoder().fit_transform(dataset[self._label])
         X = dataset.drop(labels=[self._label], axis=1)
