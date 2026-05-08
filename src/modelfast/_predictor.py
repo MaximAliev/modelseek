@@ -29,7 +29,7 @@ class Predictor:
         #     depth=depth_param
         # )
         hyperparameters = {"learning_rate": trial.suggest_float("learning_rate", 1e-5, 1e-4)}
-        clf = FinetunedTabPFNClassifier(**hyperparameters)
+        clf = TabPFNClassifier(**hyperparameters)
         trial.set_user_attr("model", clf)
 
         val_score = cross_val_score(
